@@ -1,0 +1,323 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極速冷食便當配方計算機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .cart-sticky {
+            position: sticky;
+            top: 1rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-slate-800">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 mb-2"><i class="fas fa-calculator text-teal-500 mr-2"></i>冷食便當配方計算機</h1>
+            <p class="text-slate-500 font-medium">目標：成本 <span class="text-rose-500 font-bold">$100</span> 內 ｜ 熱量約 <span class="text-amber-500 font-bold">600 大卡</span></p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- 左側：食材清單 (佔 2 欄) -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- 蛋白質區 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-blue-50 px-5 py-3 border-b border-blue-100 flex items-center">
+                        <i class="fas fa-fish text-blue-500 text-xl mr-3"></i>
+                        <h2 class="text-lg font-bold text-blue-800">優質蛋白質 (基底)</h2>
+                    </div>
+                    <div class="p-0" id="protein-list">
+                        <!-- JS 渲染 -->
+                    </div>
+                </div>
+
+                <!-- 碳水區 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-amber-50 px-5 py-3 border-b border-amber-100 flex items-center">
+                        <i class="fas fa-bread-slice text-amber-500 text-xl mr-3"></i>
+                        <h2 class="text-lg font-bold text-amber-800">複合碳水化合物</h2>
+                    </div>
+                    <div class="p-0" id="carbs-list">
+                        <!-- JS 渲染 -->
+                    </div>
+                </div>
+
+                <!-- 蔬菜與脂肪區 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-emerald-50 px-5 py-3 border-b border-emerald-100 flex items-center">
+                        <i class="fas fa-leaf text-emerald-500 text-xl mr-3"></i>
+                        <h2 class="text-lg font-bold text-emerald-800">纖維與健康脂肪</h2>
+                    </div>
+                    <div class="p-0" id="fat-list">
+                        <!-- JS 渲染 -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 右側：計算結果 (佔 1 欄) -->
+            <div class="lg:col-span-1">
+                <div class="bg-slate-800 text-white rounded-2xl shadow-xl border border-slate-700 overflow-hidden cart-sticky">
+                    <div class="p-5 border-b border-slate-700 flex justify-between items-center">
+                        <h2 class="text-xl font-bold"><i class="fas fa-box-open mr-2 text-teal-400"></i>你的午餐盒</h2>
+                        <button onclick="clearCart()" class="text-xs bg-slate-700 hover:bg-rose-500 text-white px-3 py-1 rounded transition-colors">
+                            清空重來
+                        </button>
+                    </div>
+                    
+                    <!-- 選中的項目 -->
+                    <div class="p-5 max-h-[30vh] overflow-y-auto hide-scrollbar bg-slate-900" id="cart-items">
+                        <!-- JS 渲染 -->
+                        <div class="text-center text-slate-500 py-4 text-sm" id="empty-msg">
+                            還沒加入任何食材喔！<br>趕快從左邊點擊 ➕ 開始配餐吧。
+                        </div>
+                    </div>
+
+                    <!-- 數據總結 -->
+                    <div class="p-5 bg-slate-800">
+                        <div class="flex justify-between items-end mb-4">
+                            <div>
+                                <p class="text-slate-400 text-sm font-medium">總成本</p>
+                                <div class="text-3xl font-black flex items-baseline mt-1" id="total-cost">
+                                    <span class="text-lg mr-1">$</span>0
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-slate-400 text-sm font-medium">總熱量</p>
+                                <div class="text-3xl font-black text-amber-400 mt-1" id="total-kcal">
+                                    0 <span class="text-base font-normal">kcal</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 mt-6">
+                            <!-- 蛋白質 Bar -->
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-blue-300 font-bold">蛋白質 <span id="total-p">0</span>g</span>
+                                    <span class="text-slate-500 text-[10px]">目標: >35g</span>
+                                </div>
+                                <div class="w-full bg-slate-700 rounded-full h-2">
+                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%" id="bar-p"></div>
+                                </div>
+                            </div>
+                            <!-- 碳水 Bar -->
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-amber-300 font-bold">碳水 <span id="total-c">0</span>g</span>
+                                </div>
+                                <div class="w-full bg-slate-700 rounded-full h-2">
+                                    <div class="bg-amber-400 h-2 rounded-full transition-all duration-300" style="width: 0%" id="bar-c"></div>
+                                </div>
+                            </div>
+                            <!-- 脂肪 Bar -->
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="text-rose-300 font-bold">脂肪 <span id="total-f">0</span>g</span>
+                                </div>
+                                <div class="w-full bg-slate-700 rounded-full h-2">
+                                    <div class="bg-rose-400 h-2 rounded-full transition-all duration-300" style="width: 0%" id="bar-f"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 食材資料庫
+        const ingredients = {
+            protein: [
+                { id: 'p1', name: '水煮鮪魚罐頭', unit: '1罐 (150g)', price: 43, kcal: 100, p: 21, c: 0, f: 1, desc: '極高CP值，免煮直接吃' },
+                { id: 'p2', name: '自煮洗選蛋', unit: '1顆', price: 6, kcal: 70, p: 6, c: 0, f: 5, desc: '週末一次煮好，省下茶葉蛋差價' },
+                { id: 'p3', name: '中華涼拌豆腐', unit: '1盒 (300g)', price: 16, kcal: 150, p: 15, c: 6, f: 8, desc: '超大體積飽足感，清爽解膩' },
+                { id: 'p4', name: '即食雞胸肉', unit: '1包 (100g)', price: 59, kcal: 110, p: 24, c: 1, f: 1, desc: '最方便但偏貴，偶爾可換口味' },
+                { id: 'p5', name: '無糖豆漿', unit: '半瓶 (200ml)', price: 10, kcal: 65, p: 7, c: 3, f: 3, desc: '泡燕麥或直接喝' }
+            ],
+            carbs: [
+                { id: 'c1', name: '冰烤番薯', unit: '1小條 (100g)', price: 14, kcal: 110, p: 1, c: 25, f: 0, desc: '抗性澱粉不發胖，冰涼好吃' },
+                { id: 'c2', name: '桂格大燕麥片', unit: '1份 (5大匙/50g)', price: 10, kcal: 190, p: 6, c: 33, f: 4, desc: '超低成本，做成隔夜燕麥' },
+                { id: 'c3', name: '綠巨人玉米粒', unit: '半罐 (100g)', price: 20, kcal: 80, p: 2, c: 15, f: 1, desc: '增加甜味與口感' },
+                { id: 'c4', name: '全麥捲餅皮', unit: '1片', price: 9, kcal: 105, p: 3, c: 18, f: 2, desc: '適合做單手握卷' },
+                { id: 'c5', name: '香蕉', unit: '1根', price: 13, kcal: 90, p: 1, c: 23, f: 0, desc: '快速補充能量' }
+            ],
+            fat: [
+                { id: 'f1', name: '薄鹽毛豆莢', unit: '1/3包 (100g)', price: 16, kcal: 120, p: 11, c: 10, f: 4, desc: '高纖維又富含植物蛋白' },
+                { id: 'f2', name: '芝司創客起司片', unit: '1片', price: 8, kcal: 60, p: 3, c: 1, f: 5, desc: '增加乳香風味' },
+                { id: 'f3', name: '無糖花生醬', unit: '1大匙 (15g)', price: 10, kcal: 95, p: 4, c: 3, f: 8, desc: '配燕麥神物' },
+                { id: 'f4', name: '免洗沙拉生菜', unit: '1份', price: 15, kcal: 10, p: 1, c: 2, f: 0, desc: '補足蔬菜量' },
+                { id: 'f5', name: '和風醬+少許香油', unit: '1份 (2大匙)', price: 11, kcal: 50, p: 0, c: 5, f: 3, desc: '涼拌豆腐神配料' },
+                { id: 'f6', name: '綜合堅果', unit: '1小把 (15g)', price: 12, kcal: 90, p: 3, c: 4, f: 8, desc: '優質脂肪來源' }
+            ]
+        };
+
+        // 購物車狀態 { id: quantity }
+        let cart = {};
+        
+        // 取得所有食材的扁平化陣列 (為了查詢方便)
+        const allItems = [...ingredients.protein, ...ingredients.carbs, ...ingredients.fat];
+
+        // 初始化
+        function init() {
+            renderList('protein-list', ingredients.protein);
+            renderList('carbs-list', ingredients.carbs);
+            renderList('fat-list', ingredients.fat);
+            updateCart();
+        }
+
+        // 渲染食材列表
+        function renderList(containerId, items) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = items.map(item => `
+                <div class="flex items-center justify-between p-4 border-b border-slate-100 hover:bg-slate-50 transition-colors last:border-0">
+                    <div class="flex-1 pr-4">
+                        <div class="flex items-baseline">
+                            <h3 class="font-bold text-slate-800 text-lg mr-2">${item.name}</h3>
+                            <span class="text-xs text-slate-500 bg-slate-200 px-2 py-0.5 rounded">${item.unit}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">${item.desc}</p>
+                        <div class="flex gap-3 mt-2 text-xs font-medium">
+                            <span class="text-rose-600"><i class="fas fa-dollar-sign mr-0.5"></i>${item.price}</span>
+                            <span class="text-amber-600"><i class="fas fa-fire mr-0.5"></i>${item.kcal} kcal</span>
+                            <span class="text-blue-600">蛋 ${item.p}g</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-100 rounded-full px-1 py-1 border border-slate-200">
+                        <button onclick="updateQty('${item.id}', -1)" class="w-8 h-8 rounded-full bg-white text-slate-600 shadow-sm hover:bg-slate-200 hover:text-slate-800 transition flex justify-center items-center">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span id="qty-${item.id}" class="w-6 text-center font-bold text-slate-700">0</span>
+                        <button onclick="updateQty('${item.id}', 1)" class="w-8 h-8 rounded-full bg-teal-500 text-white shadow-sm hover:bg-teal-600 transition flex justify-center items-center">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 更新數量
+        function updateQty(id, change) {
+            if (!cart[id]) cart[id] = 0;
+            cart[id] += change;
+            if (cart[id] < 0) cart[id] = 0;
+            
+            // 更新列表上的數字
+            document.getElementById(`qty-${id}`).innerText = cart[id];
+            
+            updateCart();
+        }
+
+        // 更新購物車與計算總和
+        function updateCart() {
+            const cartContainer = document.getElementById('cart-items');
+            const emptyMsg = document.getElementById('empty-msg');
+            
+            let totalCost = 0;
+            let totalKcal = 0;
+            let totalP = 0;
+            let totalC = 0;
+            let totalF = 0;
+            let hasItems = false;
+            let cartHtml = '';
+
+            for (const [id, qty] of Object.entries(cart)) {
+                if (qty > 0) {
+                    hasItems = true;
+                    const item = allItems.find(i => i.id === id);
+                    
+                    totalCost += item.price * qty;
+                    totalKcal += item.kcal * qty;
+                    totalP += item.p * qty;
+                    totalC += item.c * qty;
+                    totalF += item.f * qty;
+
+                    cartHtml += `
+                        <div class="flex justify-between items-center py-2 border-b border-slate-700/50 last:border-0">
+                            <div class="text-slate-200 text-sm">
+                                <span class="font-bold">${item.name}</span>
+                                <span class="text-slate-500 text-xs ml-1">x ${qty}</span>
+                            </div>
+                            <div class="text-right flex items-center gap-3 text-sm">
+                                <span class="text-amber-400/80 text-xs">${item.kcal * qty} kcal</span>
+                                <span class="text-white font-bold w-10 text-right">$${item.price * qty}</span>
+                                <button onclick="updateQty('${id}', -${qty})" class="text-slate-500 hover:text-rose-400 ml-1">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            if (hasItems) {
+                cartContainer.innerHTML = cartHtml;
+            } else {
+                cartContainer.innerHTML = '';
+                cartContainer.appendChild(emptyMsg);
+            }
+
+            // 更新 UI 數字
+            const costEl = document.getElementById('total-cost');
+            costEl.innerHTML = `<span class="text-lg mr-1">$</span>${totalCost}`;
+            
+            // 變色邏輯：超過 100 元變紅色提醒
+            if (totalCost > 100) {
+                costEl.className = "text-3xl font-black flex items-baseline mt-1 text-rose-500";
+            } else if (totalCost > 0) {
+                costEl.className = "text-3xl font-black flex items-baseline mt-1 text-teal-400";
+            } else {
+                costEl.className = "text-3xl font-black flex items-baseline mt-1 text-white";
+            }
+
+            document.getElementById('total-kcal').innerText = totalKcal;
+            document.getElementById('total-p').innerText = totalP;
+            document.getElementById('total-c').innerText = totalC;
+            document.getElementById('total-f').innerText = totalF;
+
+            // 更新進度條 (蛋白質抓 60g 滿，碳水 80g 滿，脂肪 30g 滿為視覺基準)
+            document.getElementById('bar-p').style.width = Math.min((totalP / 60) * 100, 100) + '%';
+            document.getElementById('bar-c').style.width = Math.min((totalC / 80) * 100, 100) + '%';
+            document.getElementById('bar-f').style.width = Math.min((totalF / 30) * 100, 100) + '%';
+        }
+
+        // 清空重來
+        function clearCart() {
+            cart = {};
+            // 重置所有 UI 數字
+            allItems.forEach(item => {
+                const el = document.getElementById(`qty-${item.id}`);
+                if (el) el.innerText = '0';
+            });
+            updateCart();
+        }
+
+        // 啟動
+        window.onload = init;
+    </script>
+</body>
+</html>
+
+```
